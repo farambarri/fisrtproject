@@ -1,28 +1,58 @@
-import { Component, OnInit } from "@angular/core";
-import { EmployeeService } from "../../services/employee.service";
-import { NgForm } from "@angular/forms";
-import { Employee } from "src/app/moldels/employee";
+import { Component, OnInit } from '@angular/core';
+import { EmployeeService } from '../../services/employee.service';
+import { NgForm } from '@angular/forms';
+import { Employee } from 'src/app/moldels/employee';
+import { Router, ActivatedRoute } from '@angular/router';
 
 declare var M: any;
 
 @Component({
-  selector: "app-employees",
-  templateUrl: "./employees.component.html",
-  styleUrls: ["./employees.component.css"],
+  selector: 'app-employees',
+  templateUrl: './employees.component.html',
+  styleUrls: ['./employees.component.css'],
   providers: [EmployeeService]
 })
 export class EmployeesComponent implements OnInit {
-  constructor(private employeeService: EmployeeService) {}
+  selectedEmployee: Employee;
+  private sub: any;
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private employeeService: EmployeeService
+  ) {
+    this.selectedEmployee = new Employee();
+  }
 
   ngOnInit() {
-    this.getEmployee();
+    this.sub = this.route.params.subscribe(params => {
+      this.setEmployeeForEdition(params['id']);
+    });
+  }
+
+  setEmployeeForEdition(id: String) {
+    console.log(id);
+    if (id) {
+      this.employeeService.getEmployee(id).subscribe((res: Employee) => {
+        console.log(res);
+        this.selectedEmployee = res;
+      });
+    }
+  }
+
+  OnDestroy() {
+    this.sub.unsubscribe();
   }
 
   resetForm(form?: NgForm) {
     if (form) {
       form.reset();
-      this.employeeService.selectedEmployee = new Employee();
+      this.selectedEmployee = new Employee();
     }
+  }
+
+  back() {
+    console.log('back');
+    this.router.navigateByUrl('/emplyeeBrowse');
   }
 
   addEmployee(form?: NgForm) {
@@ -30,34 +60,16 @@ export class EmployeesComponent implements OnInit {
       if (form.value._id) {
         this.employeeService.updateEmployee(form.value).subscribe(res => {
           this.resetForm(form);
-          M.toast({ html: "Successfully Updated" });
-          this.getEmployee();
+          M.toast({ html: 'Successfully Updated' });
+          this.router.navigateByUrl('/emplyeeBrowse');
         });
       } else {
         this.employeeService.addEmployee(form.value).subscribe(res => {
           this.resetForm(form);
-          M.toast({ html: "Successfully saved" });
-          this.getEmployee();
+          M.toast({ html: 'Successfully saved' });
+          this.router.navigateByUrl('/emplyeeBrowse');
         });
       }
     }
-  }
-
-  getEmployee() {
-    this.employeeService.getEmployees().subscribe(res => {
-      this.employeeService.employees = res as Employee[];
-    });
-  }
-
-  editEmployee(employee: Employee) {
-    this.employeeService.selectedEmployee = employee;
-  }
-
-  deleteEmployee(id: string) {
-    this.employeeService.deleteEmployee(id).subscribe(res => {
-      console.log(res);
-      M.toast({ html: "Successfully deleted" });
-      this.getEmployee();
-    });
   }
 }
